@@ -2,6 +2,6 @@
 {
     internal class Constants
     {
-        public const string SnapshotsContainer = "CandlesProducerSnapshots";
+        public const string SnapshotsContainer = "candlesproducersnapshots";
     }
 }
