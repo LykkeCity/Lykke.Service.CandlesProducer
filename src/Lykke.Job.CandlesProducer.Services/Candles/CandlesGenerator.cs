@@ -42,7 +42,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
         public CandleUpdateResult UpdateTradingVolume(string assetPair, DateTime timestamp, double tradingVolume, double tradingOppositeVolume, double tradePrice, CandleTimeInterval timeInterval)
         {
             return Update(assetPair, timestamp, CandlePriceType.Trades, timeInterval,
-                createNewCandle: oldCandle => Candle.CreateWithTradingVolume(assetPair, timestamp, tradingVolume, tradingOppositeVolume, oldCandle?.LastTradePrice ?? 0, CandlePriceType.Trades, timeInterval), 
+                createNewCandle: oldCandle => Candle.CreateWithTradingVolume(assetPair, timestamp, tradingVolume, tradingOppositeVolume, tradePrice, CandlePriceType.Trades, timeInterval), 
                 updateCandle: oldCandle => oldCandle.UpdateTradingVolume(timestamp, tradingVolume, tradingOppositeVolume, tradePrice),
                 getLoggingContext: candle => new
                 {
