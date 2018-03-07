@@ -10,11 +10,12 @@ using JetBrains.Annotations;
 using Lykke.Job.CandlesProducer.Core.Domain;
 using Lykke.Job.CandlesProducer.Core.Domain.Candles;
 using MessagePack;
+using RabbitMQ.Client.Exceptions;
 
 namespace Lykke.Job.CandlesProducer.AzureRepositories
 {
     [UsedImplicitly]
-    public class CandlesGeneratorSnapshotRepository : ISnapshotRepository<ImmutableDictionary<string, ImmutableList<ICandle>>>
+    public class CandlesGeneratorSnapshotRepository : ISnapshotRepository<ImmutableDictionary<string, ICandle>>
     {
         private const string Key = "CandlesGenerator";
 
@@ -27,11 +28,11 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
             _storage = storage;
         }
 
-        public async Task SaveAsync(ImmutableDictionary<string, ImmutableList<ICandle>> state)
+        public async Task SaveAsync(ImmutableDictionary<string, ICandle> state)
         {
             using (var stream = new MemoryStream())
             {
-                var model = state.ToDictionary(i => i.Key, i => i.Value.Select(CandleEntity.Copy));
+                var model = state.ToDictionary(i => i.Key, i => CandleEntity.Copy(i.Value));
 
                 MessagePackSerializer.Serialize(stream, model);
 
@@ -42,7 +43,7 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
             }
         }
 
-        public async Task<ImmutableDictionary<string, ImmutableList<ICandle>>> TryGetAsync()
+        public async Task<ImmutableDictionary<string, ICandle>> TryGetAsync()
         {
             if (!await _storage.HasBlobAsync(Constants.SnapshotsContainer, Key))
             {
@@ -53,9 +54,9 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
             {
                 using (var stream = await _storage.GetAsync(Constants.SnapshotsContainer, Key))
                 {
-                    var model = MessagePackSerializer.Deserialize<Dictionary<string, IEnumerable<CandleEntity>>>(stream);
+                    var model = MessagePackSerializer.Deserialize<Dictionary<string, CandleEntity>>(stream);
 
-                    return model.ToImmutableDictionary(i => i.Key, i => i.Value.Cast<ICandle>().ToImmutableList());
+                    return model.ToImmutableDictionary(i => i.Key, i => (ICandle)i.Value);
                 }
             }
             catch (InvalidOperationException)
@@ -69,7 +70,7 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
 
                 return legacyFormat.ToImmutableDictionary(
                     i => i.Key,
-                    i => new ICandle[] { i.Value }.ToImmutableList());
+                    i => (ICandle)i.Value);
             }
         }
 

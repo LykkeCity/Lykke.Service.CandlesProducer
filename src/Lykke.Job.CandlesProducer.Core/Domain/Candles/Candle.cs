@@ -20,6 +20,7 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
         public DateTime OpenTimestamp { get; }
         public bool HasPrices { get; }
 
+
         private Candle(
             string assetPairId, 
             CandlePriceType priceType, 
@@ -46,9 +47,12 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
             Close = close;
             Low = low;
             High = high;
-            TradingVolume = tradingVolume;
-            TradingOppositeVolume = tradingOppositeVolume;
-            LastTradePrice = lastTradePrice;
+            // Here and below we assume that candles of types ask/bid/mid can not have trading volumes and\or last trade price.
+            // I don't think it would be gracefull to throw any exception on this issue, but silent zeroing of the properties
+            // seems to be pretty nice behavior.
+            TradingVolume = priceType != CandlePriceType.Trades ? 0 : tradingVolume;
+            TradingOppositeVolume = priceType != CandlePriceType.Trades ? 0 : tradingOppositeVolume;
+            LastTradePrice = priceType != CandlePriceType.Trades ? 0 : lastTradePrice;
             HasPrices = hasPrices;
         }
 
@@ -97,7 +101,7 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
                 price,
                 0,
                 0,
-                lastTradePrice,
+                priceType != CandlePriceType.Trades ? 0 : lastTradePrice,
                 true
             );
         }
@@ -125,9 +129,9 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
                 0,
                 0,
                 0,
-                tradingVolume,
-                tradingOppositeVolume,
-                lastTradePrice,
+                priceType != CandlePriceType.Trades ? 0 : tradingVolume,
+                priceType != CandlePriceType.Trades ? 0 : tradingOppositeVolume,
+                priceType != CandlePriceType.Trades ? 0 : lastTradePrice,
                 false
             );
         }
@@ -168,9 +172,9 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
                 closePrice,
                 lowPrice,
                 highPrice,
-                TradingVolume,
-                TradingOppositeVolume,
-                LastTradePrice,
+                PriceType != CandlePriceType.Trades ? 0 : TradingVolume,
+                PriceType != CandlePriceType.Trades ? 0 : TradingOppositeVolume,
+                PriceType != CandlePriceType.Trades ? 0 : LastTradePrice,
                 true);
         }
 
@@ -190,9 +194,9 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
                 Close,
                 Low,
                 High,
-                TradingVolume + tradingVolume,
-                TradingOppositeVolume + tradingOppositeVolume,
-                localLastTradePrice,
+                PriceType != CandlePriceType.Trades ? 0 : TradingVolume + tradingVolume,
+                PriceType != CandlePriceType.Trades ? 0 : TradingOppositeVolume + tradingOppositeVolume,
+                PriceType != CandlePriceType.Trades ? 0 : localLastTradePrice,
                 HasPrices);
         }
 
@@ -209,9 +213,9 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
                 Close,
                 Low,
                 High,
-                TradingVolume - tradingVolume,
-                TradingOppositeVolume - tradingOppositeVolume,
-                LastTradePrice,
+                PriceType != CandlePriceType.Trades ? 0 : TradingVolume - tradingVolume,
+                PriceType != CandlePriceType.Trades ? 0 : TradingOppositeVolume - tradingOppositeVolume,
+                PriceType != CandlePriceType.Trades ? 0 : LastTradePrice,
                 HasPrices);
         }
 

@@ -12,12 +12,6 @@ namespace Lykke.Job.CandlesProducer.Contract
     public class CandleUpdate
     {
         /// <summary>
-        /// Is the latest (active) candle at the moment of the update?
-        /// </summary>
-        [Key(0)]
-        public bool IsLatestCandle { get; set; }
-
-        /// <summary>
         /// Is the latest change of the given candle at the moment of the update?
         /// </summary>
         /// <remarks>

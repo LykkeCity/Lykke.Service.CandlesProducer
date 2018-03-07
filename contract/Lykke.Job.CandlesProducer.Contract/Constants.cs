@@ -12,6 +12,6 @@ namespace Lykke.Job.CandlesProducer.Contract
         /// <summary>
         /// Semver compatible contract version, but only major and minor parts are used
         /// </summary>
-        public static readonly Version ContractVersion = new Version(2, 0);
+        public static readonly Version ContractVersion = new Version(3, 0);
     }
 }
