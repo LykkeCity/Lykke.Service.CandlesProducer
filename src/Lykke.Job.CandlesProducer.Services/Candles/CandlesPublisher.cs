@@ -48,7 +48,6 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                 Candles = updates
                     .Select(c => new CandleUpdate
                     {
-                        IsLatestCandle = c.IsLatestCandle,
                         IsLatestChange = c.IsLatestChange,
                         ChangeTimestamp = c.Candle.LatestChangeTimestamp,
                         AssetPairId = c.Candle.AssetPairId,
