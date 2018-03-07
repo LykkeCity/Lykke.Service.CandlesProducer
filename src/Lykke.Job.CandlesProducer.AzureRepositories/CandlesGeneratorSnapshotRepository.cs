@@ -10,7 +10,6 @@ using JetBrains.Annotations;
 using Lykke.Job.CandlesProducer.Core.Domain;
 using Lykke.Job.CandlesProducer.Core.Domain.Candles;
 using MessagePack;
-using RabbitMQ.Client.Exceptions;
 
 namespace Lykke.Job.CandlesProducer.AzureRepositories
 {
@@ -66,20 +65,24 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
                     nameof(TryGetAsync), 
                     "Failed to deserialize the candles generator snapshot, trying to deserialize it as the legacy format");
 
-                var legacyFormat = await DeserializeLegacyFormat();
-
-                return legacyFormat.ToImmutableDictionary(
-                    i => i.Key,
-                    i => (ICandle)i.Value);
+                return await DeserializeLegacyFormat();
             }
         }
 
-        private async Task<Dictionary<string, CandleEntity>> DeserializeLegacyFormat()
+        private async Task<ImmutableDictionary<string, ICandle>> DeserializeLegacyFormat()
         {
             using (var stream = await _storage.GetAsync(Constants.SnapshotsContainer, Key))
             {
-                return MessagePackSerializer.Deserialize<Dictionary<string, CandleEntity>>(stream);
+                var model = MessagePackSerializer.Deserialize<Dictionary<string, IEnumerable<CandleEntity>>>(stream);
 
+                return model
+                    .Select(x => new
+                    {
+                        Key = x.Key,
+                        Candle = (ICandle) x.Value.OrderBy(c => c.Timestamp).LastOrDefault()
+                    })
+                    .Where(x => x.Candle != null)
+                    .ToImmutableDictionary(x => x.Key, x => x.Candle);
             }
         }
     }
