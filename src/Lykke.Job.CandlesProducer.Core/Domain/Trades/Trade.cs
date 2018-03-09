@@ -6,7 +6,6 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Trades
     {
         public string AssetPair { get; }
         public DateTime Timestamp { get; }
-        public TradeType Type { get; }
         /// <summary>
         /// Volume in the asset pair base asset
         /// </summary>
@@ -17,11 +16,10 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Trades
         public double QuotingVolume { get; }
         public double Price { get; }
 
-        public Trade(string assetPair, TradeType type, DateTime timestamp, double baseVolume, double quotingVolume, double price)
+        public Trade(string assetPair, DateTime timestamp, double baseVolume, double quotingVolume, double price)
         {
             AssetPair = assetPair;
             Timestamp = timestamp;
-            Type = type;
             BaseVolume = Math.Abs(baseVolume);
             QuotingVolume = Math.Abs(quotingVolume);
             Price = price;

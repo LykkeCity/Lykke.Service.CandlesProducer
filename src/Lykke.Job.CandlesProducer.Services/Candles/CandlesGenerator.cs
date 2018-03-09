@@ -16,41 +16,43 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
     public class CandlesGenerator : ICandlesGenerator
     {
         private readonly ILog _log;
-        private readonly TimeSpan _minCacheAge;
         private ConcurrentDictionary<string, Candle> _candles;
         
-        public CandlesGenerator(ILog log, TimeSpan minCacheAge)
+        public CandlesGenerator(ILog log)
         {
             _log = log;
-            _minCacheAge = minCacheAge;
             _candles = new ConcurrentDictionary<string, Candle>();
         }
 
-        public CandleUpdateResult UpdatePrice(string assetPair, DateTime timestamp, double price, CandlePriceType priceType, CandleTimeInterval timeInterval)
+        public CandleUpdateResult UpdateQuotingCandle(string assetPair, DateTime timestamp, double price, CandlePriceType priceType, CandleTimeInterval timeInterval)
         {
             // We can update LastTradePrice for only Trades candle below:
             return Update(assetPair, timestamp, priceType, timeInterval,
-                createNewCandle: oldCandle => Candle.CreateWithPrice(assetPair, timestamp, price, priceType == CandlePriceType.Trades ? oldCandle?.LastTradePrice ?? 0 : 0, priceType, timeInterval),
-                updateCandle: oldCandle => oldCandle.UpdatePrice(timestamp, price),
-                getLoggingContext: candle => new
-                {
-                    assetPair = assetPair,
-                    timestamp = timestamp
-                });
-        }
-
-        public CandleUpdateResult UpdateTradingVolume(string assetPair, DateTime timestamp, double tradingVolume, double tradingOppositeVolume, double tradePrice, CandleTimeInterval timeInterval)
-        {
-            return Update(assetPair, timestamp, CandlePriceType.Trades, timeInterval,
-                createNewCandle: oldCandle => Candle.CreateWithTradingVolume(assetPair, timestamp, tradingVolume, tradingOppositeVolume, tradePrice, CandlePriceType.Trades, timeInterval), 
-                updateCandle: oldCandle => oldCandle.UpdateTradingVolume(timestamp, tradingVolume, tradingOppositeVolume, tradePrice),
+                createNewCandle: () => Candle.CreateQuotingCandle(assetPair, timestamp, price, priceType, timeInterval),
+                updateCandle: oldCandle => oldCandle.UpdateQuotingCandle(timestamp, price),
                 getLoggingContext: candle => new
                 {
                     assetPair = assetPair,
                     timestamp = timestamp,
-                    baseVolume = tradingVolume,
-                    quotingVolume = tradingOppositeVolume,
-                    tradePrice = tradePrice
+                    price = price,
+                    priceType = priceType,
+                    timeInterval = timeInterval
+                });
+        }
+
+        public CandleUpdateResult UpdateTradingCandle(string assetPair, DateTime timestamp, double tradePrice, double baseTradingVolume, double quotingTradingVolume, CandleTimeInterval timeInterval)
+        {
+            return Update(assetPair, timestamp, CandlePriceType.Trades, timeInterval,
+                createNewCandle: () => Candle.CreateTradingCandle(assetPair, timestamp, tradePrice, baseTradingVolume, quotingTradingVolume, timeInterval), 
+                updateCandle: oldCandle => oldCandle.UpdateTradingCandle(timestamp, tradePrice, baseTradingVolume, quotingTradingVolume),
+                getLoggingContext: candle => new
+                {
+                    assetPair = assetPair,
+                    timestamp = timestamp,
+                    tradePrice = tradePrice,
+                    baseTradingVolume = baseTradingVolume,
+                    quotingTradingVolume = quotingTradingVolume,
+                    timeInterval = timeInterval
                 });
         }
         
@@ -69,8 +71,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
             _candles.AddOrUpdate(
                 key,
                 addValueFactory: k => throw new InvalidOperationException("Key should be already presented in the dictionary"),
-                updateValueFactory: (k, candles) => Candle.Copy(candleUpdateResult.OldCandle)
-                );
+                updateValueFactory: (k, candles) => candleUpdateResult.OldCandle);
         }
 
         public ImmutableDictionary<string, ICandle> GetState()
@@ -100,60 +101,58 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
             DateTime timestamp,
             CandlePriceType priceType,
             CandleTimeInterval timeInterval,
-            Func<Candle, Candle> createNewCandle,
+            Func<Candle> createNewCandle,
             Func<Candle, Candle> updateCandle,
             Func<Candle, object> getLoggingContext)
         {
             var key = GetKey(assetPair, timeInterval, priceType);
 
             // Let's prepare the old and the updated versions of our candle to compare in the very end.
-            _candles.TryGetValue(key, out var candleBefore);
-            Candle candleAfter = null;
-            
-            _candles.AddOrUpdate(key,
-                addValueFactory: k => createNewCandle(null),
+            _candles.TryGetValue(key, out var oldCandle);
+
+            var newCandle = _candles.AddOrUpdate(key,
+                addValueFactory: k => createNewCandle(),
                 updateValueFactory: (k, candle) =>
                 {
-                    lock (candle)
+                    // Candles is identified by the Timestamp
+
+                    var candleTimestamp = timestamp.TruncateTo(timeInterval);
+
+                    if (candleTimestamp == candle.Timestamp)
                     {
-                        // Candles is identified by the Timestamp
+                        // Candle matches exactly - updating it
 
-                        var candleTimestamp = timestamp.TruncateTo(timeInterval);
-                        
-                        if (candleTimestamp == candle.Timestamp)    // Candle matches exactly - updating it
-                            candleAfter = updateCandle(candle);
-
-                        else if (candleTimestamp > candle.Timestamp)    // The timestamp is newer than the candle we have - creating new candle instead
-                            candleAfter = createNewCandle(candle);
-
-                        else    // Given data is older then the oldest of the cached candles.
-                        {
-                            // Nothing to update here and no candle can be returned
-                            // since we can't obtain full candle state
-
-                            _log.WriteWarningAsync(
-                                nameof(CandlesGenerator),
-                                nameof(Update),
-                                getLoggingContext(candle).ToJson(),
-                                "Incoming data is too old to update the candle. No candle will be altered.").Wait();
-                        }
-
-                        return (candleAfter != null && candleAfter.HasPrices) ? candleAfter : Candle.Copy(candle);   // If we have a problem, we do not update the candle.
+                        return updateCandle(candle);
                     }
+
+                    if (candleTimestamp > candle.Timestamp)
+                    {
+                        // The timestamp is newer than the candle we have - creating new candle instead
+
+                        return createNewCandle();
+                    }
+                    
+                    // Given data is older then the cached candle.
+                    // Nothing to update here and no candle can be returned
+                    // since we can't obtain full candle state
+
+                    _log.WriteWarningAsync(
+                        nameof(CandlesGenerator),
+                        nameof(Update),
+                        getLoggingContext(candle).ToJson(),
+                        "Incoming data is too old to update the candle. No candle will be altered.").Wait();
+
+                    return null;
                 });
 
-            // If we just added a candle for this key at first time, we need to set candleAfter manually. Otherwise, we will get an ampty update result.
-            if (candleBefore == null)
-                _candles.TryGetValue(key, out candleAfter);
-
             // Candles without prices shouldn't be produced
-            return candleAfter == null || !candleAfter.HasPrices
+            return newCandle == null
                 ? CandleUpdateResult.Empty
                 : new CandleUpdateResult(
-                    candleAfter,
-                    candleBefore,
-                    wasChanged: !candleAfter.Equals(candleBefore),
-                    isLatestChange: candleBefore == null || candleAfter.LatestChangeTimestamp >= candleBefore.LatestChangeTimestamp);
+                    newCandle,
+                    oldCandle,
+                    wasChanged: !newCandle.Equals(oldCandle),
+                    isLatestChange: oldCandle == null || newCandle.LatestChangeTimestamp >= oldCandle.LatestChangeTimestamp);
         }
 
         private static string GetKey(string assetPairId, CandleTimeInterval timeInterval, CandlePriceType priceType)

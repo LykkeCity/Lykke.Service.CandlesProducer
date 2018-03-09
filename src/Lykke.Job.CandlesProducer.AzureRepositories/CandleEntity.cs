@@ -53,14 +53,6 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
         [Key(10)]
         public DateTime OpenTimestamp { get; set; }
 
-        [UsedImplicitly(ImplicitUseKindFlags.Assign)]
-        [Key(11)]
-        public bool HasPrices { get; set; }
-
-        [UsedImplicitly]
-        [Key(12)]
-        public decimal LastTradePrice { get; set; }
-
         [UsedImplicitly]
         [Key(13)]
         public decimal TradingOppositeVolume { get; set; }
@@ -77,8 +69,6 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
 
         double ICandle.TradingOppositeVolume => (double) TradingOppositeVolume;
 
-        double ICandle.LastTradePrice => (double) LastTradePrice;
-
         public static CandleEntity Copy(ICandle candle)
         {
             return new CandleEntity
@@ -93,10 +83,8 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
                 High = (decimal) candle.High,
                 TradingVolume = (decimal) candle.TradingVolume,
                 TradingOppositeVolume = (decimal) candle.TradingOppositeVolume,
-                LastTradePrice = (decimal) candle.LastTradePrice,
                 LatestChangeTimestamp = candle.LatestChangeTimestamp,
-                OpenTimestamp = candle.OpenTimestamp,
-                HasPrices = candle.HasPrices
+                OpenTimestamp = candle.OpenTimestamp
             };
         }
     }

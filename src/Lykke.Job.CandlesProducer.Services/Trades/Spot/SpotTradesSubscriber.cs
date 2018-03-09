@@ -18,7 +18,6 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
         private readonly IRabbitMqSubscribersFactory _subscribersFactory;
         private readonly IRabbitSubscriptionSettings _tradesSubscriptionSettings;
         private readonly IAssetPairsManager _assetPairsManager;
-        private IStopable _marketTradesSubscriber;
         private IStopable _limitTradesSubscriber;
 
         public SpotTradesSubscriber(
@@ -35,123 +34,88 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
 
         public void Start()
         {
-            _marketTradesSubscriber = _subscribersFactory.Create<MarketTradesMessage>(_tradesSubscriptionSettings.ConnectionString, "lykke", _tradesSubscriptionSettings.EndpointName, ProcessMarketTradesAsync);
-            _limitTradesSubscriber = _subscribersFactory.Create<LimitTradesMessage>(_tradesSubscriptionSettings.ConnectionString, "lykke", "limitorders.clients", ProcessLimitTradesAsync);
+            _limitTradesSubscriber = _subscribersFactory.Create<LimitOrdersMessage>(_tradesSubscriptionSettings.ConnectionString, "lykke", "limitorders.clients", ProcessLimitTradesAsync);
         }
 
-        private async Task ProcessMarketTradesAsync(MarketTradesMessage message)
-        {
-            if (message.Trades == null || !message.Trades.Any())
-            {
-                return;
-            }
-
-            var trades = message
-                .Trades
-                .Select(t =>
-                {
-                    TradeType tradeType;
-                    // Volumes in the asset pair base and quoting assets
-                    double baseVolume;
-                    double quotingVolume;
-
-                    var assetPair = _assetPairsManager.TryGetEnabledPairAsync(message.Order.AssetPairId)
-                        .GetAwaiter()
-                        .GetResult();
-
-                    if (t.MarketAsset == assetPair.BaseAssetId)
-                    {
-                        tradeType = message.Order.Volume > 0 && message.Order.Straight ||
-                                    message.Order.Volume < 0 && !message.Order.Straight
-                            ? TradeType.Buy
-                            : TradeType.Sell;
-
-                        baseVolume = t.MarketVolume;
-                        quotingVolume = t.LimitVolume;
-                    }
-                    else
-                    {
-                        tradeType = message.Order.Volume > 0 && message.Order.Straight ||
-                                    message.Order.Volume < 0 && !message.Order.Straight
-                            ? TradeType.Sell
-                            : TradeType.Buy;
-
-                        baseVolume = t.LimitVolume;
-                        quotingVolume = t.MarketVolume;
-                    }
-
-                    return new Trade(
-                        message.Order.AssetPairId,
-                        tradeType,
-                        t.Timestamp,
-                        baseVolume,
-                        quotingVolume,
-                        t.Price
-                    );
-                });
-
-            foreach (var trade in trades)
-            {
-                await _candlesManager.ProcessTradeAsync(trade);
-            }
-        }
-
-        private async Task ProcessLimitTradesAsync(LimitTradesMessage message)
+        private async Task ProcessLimitTradesAsync(LimitOrdersMessage message)
         {
             if (message.Orders == null || !message.Orders.Any())
             {
                 return;
             }
 
-            var trades = message.Orders
-                .SelectMany(o => o.Trades
-                    .Select(t =>
-                    {
-                        var assetPair = _assetPairsManager.TryGetEnabledPairAsync(o.Order.AssetPairId)
-                            .GetAwaiter()
-                            .GetResult();
+            var limitOrderIds = message.Orders
+                .Select(o => o.Order.Id)
+                .ToHashSet();
 
-                        var tradeType = o.Order.Volume > 0 ? TradeType.Buy : TradeType.Sell;
-                        // Volumes in the asset pair base and quoting assets
-                        double baseVolume;
-                        double quotingVolume;
-
-                        if (t.Asset == assetPair.BaseAssetId)
-                        {
-                            baseVolume = t.Volume;
-                            quotingVolume = t.OppositeVolume;
-                        }
-                        else
-                        {
-                            baseVolume = t.OppositeVolume;
-                            quotingVolume = t.Volume;
-                        }
-
-                        return new Trade(
-                            o.Order.AssetPairId,
-                            tradeType,
-                            t.Timestamp,
-                            baseVolume,
-                            quotingVolume,
-                            t.Price
-                        );
-                    }));
-
-            foreach (var trade in trades)
+            foreach (var orderMessage in message.Orders)
             {
-                await _candlesManager.ProcessTradeAsync(trade);
+                if (orderMessage.Trades == null)
+                {
+                    continue;
+                }
+
+                foreach (var tradeMessage in orderMessage.Trades)
+                {
+                    var assetPair = _assetPairsManager.TryGetEnabledPairAsync(orderMessage.Order.AssetPairId)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    // If both orders of the trade are limit, then both of them should be contained in the single message,
+                    // this is by design.
+
+                    var isOppositeOrderIsLimit = limitOrderIds.Contains(tradeMessage.OppositeOrderId);
+
+                    // If opposite order is market order, then unconditionally takes the given limit order.
+                    // But if both of orders are limit orders, we should take only one of them.
+
+                    if (isOppositeOrderIsLimit)
+                    {
+                        var isBuyOrder = orderMessage.Order.Volume > 0;
+
+                        // Takes trade only for the sell limit orders
+
+                        if (isBuyOrder)
+                        {
+                            continue;
+                        }
+                    }
+
+                    // Volumes in the asset pair base and quoting assets
+                    double baseVolume;
+                    double quotingVolume;
+
+                    if (tradeMessage.Asset == assetPair.BaseAssetId)
+                    {
+                        baseVolume = tradeMessage.Volume;
+                        quotingVolume = tradeMessage.OppositeVolume;
+                    }
+                    else
+                    {
+                        baseVolume = tradeMessage.OppositeVolume;
+                        quotingVolume = tradeMessage.Volume;
+                    }
+
+                    var trade = new Trade(
+                        orderMessage.Order.AssetPairId,
+                        tradeMessage.Timestamp,
+                        baseVolume,
+                        quotingVolume,
+                        tradeMessage.Price
+                    );
+
+                    await _candlesManager.ProcessTradeAsync(trade);
+                }
             }
         }
         
         public void Stop()
         {
-            _marketTradesSubscriber?.Stop();
             _limitTradesSubscriber?.Stop();
         }
 
         public void Dispose()
         {
-            _marketTradesSubscriber?.Dispose();
             _limitTradesSubscriber?.Dispose();
         }
     }

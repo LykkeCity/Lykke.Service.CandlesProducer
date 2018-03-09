@@ -104,10 +104,10 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                         ProcessTradeInterval(
                             trade.AssetPair,
                             trade.Timestamp,
+                            trade.Price,
                             trade.BaseVolume,
                             trade.QuotingVolume,
-                            trade.Price,
-                            timeInterval,
+                            timeInterval, 
                             changedUpdates);
                     }));
 
@@ -144,7 +144,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
         {
             // Updates ask/bid candle
 
-            var candleUpdateResult = _candlesGenerator.UpdatePrice(
+            var candleUpdateResult = _candlesGenerator.UpdateQuotingCandle(
                 assetPair,
                 timestamp,
                 price,
@@ -160,7 +160,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
 
             if (midPriceQuote != null)
             {
-                var midPriceCandleUpdateResult = _candlesGenerator.UpdatePrice(
+                var midPriceCandleUpdateResult = _candlesGenerator.UpdateQuotingCandle(
                     midPriceQuote.AssetPair,
                     midPriceQuote.Timestamp,
                     midPriceQuote.Price,
@@ -174,30 +174,17 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
             }
         }
 
-        private void ProcessTradeInterval(string assetPair, DateTime timestamp, double baseVolume, double quotingVolume, double tradePrice, CandleTimeInterval timeInterval, ConcurrentBag<CandleUpdateResult> changedUpdateResults)
+        private void ProcessTradeInterval(string assetPair, DateTime timestamp, double tradePrice, double baseVolume, double quotingVolume, CandleTimeInterval timeInterval, ConcurrentBag<CandleUpdateResult> changedUpdateResults)
         {
-            // Updates trades candle: price first
-
-            var candleUpdateResult = _candlesGenerator.UpdatePrice(
+            var candleUpdateResult = _candlesGenerator.UpdateTradingCandle(
                 assetPair,
                 timestamp,
                 tradePrice,
-                CandlePriceType.Trades,
-                timeInterval);
-
-            var priceChanged = candleUpdateResult.WasChanged;
-
-            // Trading volume & last trade price now
-
-            candleUpdateResult = _candlesGenerator.UpdateTradingVolume(
-                assetPair,
-                timestamp,
                 baseVolume, 
-                quotingVolume,
-                tradePrice,
+                quotingVolume, 
                 timeInterval);
 
-            if (priceChanged || candleUpdateResult.WasChanged)
+            if (candleUpdateResult.WasChanged)
             {
                 changedUpdateResults.Add(candleUpdateResult);
             }

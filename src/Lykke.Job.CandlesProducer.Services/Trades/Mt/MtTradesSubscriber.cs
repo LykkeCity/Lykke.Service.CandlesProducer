@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Common;
+using JetBrains.Annotations;
 using Lykke.Job.CandlesProducer.Core.Domain.Trades;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
@@ -8,6 +9,7 @@ using Lykke.Job.CandlesProducer.Services.Trades.Mt.Messages;
 
 namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
 {
+    [UsedImplicitly]
     public class MtTradesSubscriber : ITradesSubscriber
     {
         private readonly ICandlesManager _candlesManager;
@@ -33,23 +35,12 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
 
             var trade = new Trade(
                 message.AssetPairId,
-                message.Type == MtTradeMessage.TradeType.Buy ? TradeType.Buy : TradeType.Sell,
                 message.Date,
                 (double) message.Volume,
                 quotingVolume,
                 (double) message.Price);
 
-            var oppositeTrade = new Trade(
-                message.AssetPairId,
-                message.Type == MtTradeMessage.TradeType.Buy ? TradeType.Sell : TradeType.Buy,
-                message.Date,
-                (double) message.Volume,
-                quotingVolume,
-                (double) message.Price);
-
-            await Task.WhenAll(
-                _candlesManager.ProcessTradeAsync(trade),
-                _candlesManager.ProcessTradeAsync(oppositeTrade));
+            await _candlesManager.ProcessTradeAsync(trade);
         }
 
         public void Dispose()

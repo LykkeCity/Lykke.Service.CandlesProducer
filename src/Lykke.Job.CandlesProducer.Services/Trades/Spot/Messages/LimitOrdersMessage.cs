@@ -6,42 +6,45 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot.Messages
     // TODO: Remove unsued fields
 
     [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
-    public class MarketTradesMessage
+    public class LimitOrdersMessage
     {
-        public MarketOrder Order { get; set; }
-        public Trade[] Trades { get; set; }
+        public LimitOrder[] Orders { get; set; }
 
         [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
-        public class MarketOrder
+        public class LimitOrder
         {
+            public Order Order { get; set; }
+            public Trade[] Trades { get; set; }
+        }
+
+        [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
+        public class Order
+        {
+            public double? Price { get; set; }
+            public double RemainingVolume { get; set; }
+            public DateTime? LastMatchTime { get; set; }
             public string Id { get; set; }
             public string ExternalId { get; set; }
             public string AssetPairId { get; set; }
             public string ClientId { get; set; }
             public double Volume { get; set; }
-            public double? Price { get; set; }
-            public string Status { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime Registered { get; set; }
-            public DateTime? MatchedAt { get; set; }
-            public bool Straight { get; set; }
-            public double ReservedLimitVolume { get; set; }
-            public double? DustSize { get; set; }
         }
 
         [UsedImplicitly(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature)]
         public class Trade
         {
+            public string ClientId { get; set; }
+            public string Asset { get; set; }
+            public double Volume { get; set; }
             public double Price { get; set; }
-            public string LimitOrderId { get; set; }
-            public string LimitOrderExternalId { get; set; }
             public DateTime Timestamp { get; set; }
-            public string MarketClientId { get; set; }
-            public string MarketAsset { get; set; }
-            public double MarketVolume { get; set; }
-            public string LimitClientId { get; set; }
-            public double LimitVolume { get; set; }
-            public string LimitAsset { get; set; }
+            public string OppositeOrderId { get; set; }
+            public string OppositeOrderExternalId { get; set; }
+            public string OppositeAsset { get; set; }
+            public string OppositeClientId { get; set; }
+            public double OppositeVolume { get; set; }
         }
     }
 }
