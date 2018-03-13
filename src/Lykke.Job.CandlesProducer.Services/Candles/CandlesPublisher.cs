@@ -68,7 +68,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
             {
                 // HACK: Actually ProduceAsync is not async, so lock works well
 
-                return _publisher.ProduceAsync(@event);
+                return _publisher.ProduceAsync(@event); 
             }
         }
 
