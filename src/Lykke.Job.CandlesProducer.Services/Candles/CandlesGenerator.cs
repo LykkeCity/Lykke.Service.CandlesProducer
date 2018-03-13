@@ -142,17 +142,15 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                         getLoggingContext(candle).ToJson(),
                         "Incoming data is too old to update the candle. No candle will be altered.").Wait();
 
-                    return null;
+                    return candle;
                 });
 
             // Candles without prices shouldn't be produced
-            return newCandle == null
-                ? CandleUpdateResult.Empty
-                : new CandleUpdateResult(
-                    newCandle,
-                    oldCandle,
-                    wasChanged: !newCandle.Equals(oldCandle),
-                    isLatestChange: oldCandle == null || newCandle.LatestChangeTimestamp >= oldCandle.LatestChangeTimestamp);
+            return new CandleUpdateResult(
+                newCandle,
+                oldCandle,
+                wasChanged: !newCandle.Equals(oldCandle),
+                isLatestChange: oldCandle == null || newCandle.LatestChangeTimestamp >= oldCandle.LatestChangeTimestamp);
         }
 
         private static string GetKey(string assetPairId, CandleTimeInterval timeInterval, CandlePriceType priceType)

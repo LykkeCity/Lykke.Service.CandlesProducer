@@ -2,8 +2,6 @@
 {
     public class CandleUpdateResult
     {
-        public static readonly CandleUpdateResult Empty = new CandleUpdateResult(null, null, false, false);
-
         public Candle Candle { get; }
         public Candle OldCandle { get; }
         public bool WasChanged { get; }
