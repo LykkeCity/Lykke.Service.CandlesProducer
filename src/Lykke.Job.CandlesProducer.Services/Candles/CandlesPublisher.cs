@@ -59,7 +59,9 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                         Low = c.Candle.Low,
                         High = c.Candle.High,
                         TradingVolume = c.Candle.TradingVolume,
-                        TradingOppositeVolume = c.Candle.TradingOppositeVolume
+                        TradingOppositeVolume = c.Candle.TradingOppositeVolume,
+                        IsLatestCandle = true,
+                        LastTradePrice = 0
                     })
                     .ToArray()
             };
