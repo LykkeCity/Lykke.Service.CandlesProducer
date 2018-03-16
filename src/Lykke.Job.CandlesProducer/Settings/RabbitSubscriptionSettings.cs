@@ -6,6 +6,7 @@ namespace Lykke.Job.CandlesProducer.Settings
 {
     public class RabbitSubscriptionSettingsSettings : IRabbitSubscriptionSettings
     {
+        [AmqpCheck]
         public string ConnectionString { get; set; }
         [Optional]
         public string EndpointName { get; set; }

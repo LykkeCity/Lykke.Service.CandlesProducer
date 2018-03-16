@@ -87,12 +87,16 @@ namespace Lykke.Job.CandlesProducer.Modules
             builder.RegisterType<RabbitMqPublishersFactory>()
                 .As<IRabbitMqPublishersFactory>();
 
-            builder.RegisterType(_quotesSourceType == QuotesSourceType.Spot
-                    ? typeof(SpotQuotesSubscriber)
-                    : typeof(MtQuotesSubscriber))
-                .As<IQuotesSubscriber>()
-                .SingleInstance()
-                .WithParameter(TypedParameter.From(_settings.Rabbit.QuotesSubscribtion));
+            // Optionally loading quotes subscriber if it is present in settings...
+            if (_settings.Rabbit.QuotesSubscribtion != null)
+            {
+                builder.RegisterType(_quotesSourceType == QuotesSourceType.Spot
+                        ? typeof(SpotQuotesSubscriber)
+                        : typeof(MtQuotesSubscriber))
+                    .As<IQuotesSubscriber>()
+                    .SingleInstance()
+                    .WithParameter(TypedParameter.From(_settings.Rabbit.QuotesSubscribtion));
+            }
 
             if (_quotesSourceType == QuotesSourceType.Spot)
             {
