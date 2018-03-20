@@ -19,10 +19,10 @@ namespace Lykke.Job.CandlesProducer.Services
             _log = log;
         }
 
-        public IStopable Create<TMessage>(string connectionString, string @namespace, string source, Func<TMessage, Task> handler)
+        public IStopable Create<TMessage>(string connectionString, string @namespace, string source, Func<TMessage, Task> handler, string queueSuffix = null)
         {
             var settings = RabbitMqSubscriptionSettings
-                .CreateForSubscriber(connectionString, @namespace, source, @namespace, "candlesproducer")
+                .CreateForSubscriber(connectionString, @namespace, source, @namespace, $"candlesproducer{queueSuffix}")
                 .MakeDurable();
 
             return new RabbitMqSubscriber<TMessage>(settings,

@@ -34,7 +34,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
 
         public void Start()
         {
-            _limitTradesSubscriber = _subscribersFactory.Create<LimitOrdersMessage>(_tradesSubscriptionSettings.ConnectionString, "lykke", "limitorders.clients-v2", ProcessLimitTradesAsync);
+            _limitTradesSubscriber = _subscribersFactory.Create<LimitOrdersMessage>(_tradesSubscriptionSettings.ConnectionString, "lykke", "limitorders.clients", ProcessLimitTradesAsync, "-v2");
         }
 
         private async Task ProcessLimitTradesAsync(LimitOrdersMessage message)
