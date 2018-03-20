@@ -26,7 +26,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
 
         public void Start()
         {
-            _tradesSubscriber = _subscribersFactory.Create<MtTradeMessage>(_connectionString, "lykke.mt", "trades", ProcessTradeAsync);
+            _tradesSubscriber = _subscribersFactory.Create<MtTradeMessage>(_connectionString, "lykke.mt", "trades-v2", ProcessTradeAsync);
         }
 
         private async Task ProcessTradeAsync(MtTradeMessage message)
