@@ -155,7 +155,7 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
 
         private static string GetKey(string assetPairId, CandleTimeInterval timeInterval, CandlePriceType priceType)
         {
-            return $"{assetPairId.Trim().ToUpper()}-{priceType}-{timeInterval}";
+            return $"{assetPairId.Trim()}-{priceType}-{timeInterval}";
         }
     }
 }

@@ -63,9 +63,9 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
 
         public QuoteMessage TryGenerate(string assetPair, bool isBuy, double price, DateTime timestamp, int assetPairAccuracy)
         {
-            var assetPairId = assetPair.Trim().ToUpper();
+            var assetPairId = assetPair.Trim();
 
-            _assetMarketStates.TryGetValue(assetPairId, out MarketState oldState);
+            _assetMarketStates.TryGetValue(assetPairId, out var oldState);
 
             var newPriceState = new PriceState(price, timestamp);
             var newState = isBuy
