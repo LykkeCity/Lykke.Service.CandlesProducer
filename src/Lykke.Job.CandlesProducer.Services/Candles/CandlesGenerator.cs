@@ -16,12 +16,16 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
     public class CandlesGenerator : ICandlesGenerator
     {
         private readonly ILog _log;
+        private readonly TimeSpan _warningsTimeout;
         private ConcurrentDictionary<string, Candle> _candles;
+        private readonly Dictionary<string, DateTime> _lastWarningTimesForPairs;
         
-        public CandlesGenerator(ILog log)
+        public CandlesGenerator(ILog log, TimeSpan warningsTimeout)
         {
             _log = log;
+            _warningsTimeout = warningsTimeout;
             _candles = new ConcurrentDictionary<string, Candle>();
+            _lastWarningTimesForPairs = new Dictionary<string, DateTime>();
         }
 
         public CandleUpdateResult UpdateQuotingCandle(string assetPair, DateTime timestamp, double price, CandlePriceType priceType, CandleTimeInterval timeInterval)
@@ -134,8 +138,14 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                     
                     // Given data is older then the cached candle.
                     // Nothing to update here and no candle can be returned
-                    // since we can't obtain full candle state
+                    // since we can't obtain full candle state. Let's see also,
+                    // if we need to log down this event.
 
+                    if (_lastWarningTimesForPairs.TryGetValue(candle.AssetPairId, out var lastWarningTime) &&
+                        DateTime.UtcNow - lastWarningTime <= _warningsTimeout)
+                        return candle;
+
+                    _lastWarningTimesForPairs[candle.AssetPairId] = DateTime.UtcNow;
                     _log.WriteWarningAsync(
                         nameof(CandlesGenerator),
                         nameof(Update),

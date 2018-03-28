@@ -134,7 +134,7 @@ namespace Lykke.Job.CandlesProducer.Modules
                 .As<ICandlesGenerator>()
                 .As<IHaveState<ImmutableDictionary<string, ICandle>>>()
                 .SingleInstance()
-                .WithParameter(TypedParameter.From(_settings.CandlesGenerator.MinCacheAge));
+                .WithParameter(TypedParameter.From(_settings.CandlesGenerator.OldDataWarningTimeout));
 
             builder.RegisterType<CandlesManager>()
                 .As<ICandlesManager>();
