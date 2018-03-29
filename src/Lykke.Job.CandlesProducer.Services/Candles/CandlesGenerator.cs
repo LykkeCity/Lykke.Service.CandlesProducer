@@ -18,14 +18,14 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
         private readonly ILog _log;
         private readonly TimeSpan _warningsTimeout;
         private ConcurrentDictionary<string, Candle> _candles;
-        private readonly Dictionary<string, DateTime> _lastWarningTimesForPairs;
+        private readonly ConcurrentDictionary<string, DateTime> _lastWarningTimesForPairs;
         
         public CandlesGenerator(ILog log, TimeSpan warningsTimeout)
         {
             _log = log;
             _warningsTimeout = warningsTimeout;
             _candles = new ConcurrentDictionary<string, Candle>();
-            _lastWarningTimesForPairs = new Dictionary<string, DateTime>();
+            _lastWarningTimesForPairs = new ConcurrentDictionary<string, DateTime>();
         }
 
         public CandleUpdateResult UpdateQuotingCandle(string assetPair, DateTime timestamp, double price, CandlePriceType priceType, CandleTimeInterval timeInterval)
