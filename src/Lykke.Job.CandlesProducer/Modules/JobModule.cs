@@ -4,6 +4,7 @@ using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Blob;
 using Common.Log;
+using Lykke.Common;
 using Lykke.Job.CandlesProducer.AzureRepositories;
 using Lykke.Job.CandlesProducer.Core.Domain;
 using Lykke.Job.CandlesProducer.Core.Domain.Candles;
@@ -56,11 +57,36 @@ namespace Lykke.Job.CandlesProducer.Modules
                 .As<IHealthService>()
                 .SingleInstance();
 
+            RegisterResourceMonitor(builder);
+
             RegisterAssetsServices(builder);
 
             RegisterCandlesServices(builder);
 
             builder.Populate(_services);
+        }
+
+        private void RegisterResourceMonitor(ContainerBuilder builder)
+        {
+            var monitorSettings = _settings.ResourceMonitor;
+
+            switch (monitorSettings.MonitorMode)
+            {
+                case ResourceMonitorMode.Off:
+                    // Do not register any resource monitor.
+                    break;
+
+                case ResourceMonitorMode.AppInsightsOnly:
+                    builder.RegisterResourcesMonitoring(_log);
+                    break;
+
+                case ResourceMonitorMode.AppInsightsWithLog:
+                    builder.RegisterResourcesMonitoringWithLogging(
+                        _log,
+                        monitorSettings.CpuThreshold,
+                        monitorSettings.RamThreshold);
+                    break;
+            }
         }
 
         private void RegisterAssetsServices(ContainerBuilder builder)
