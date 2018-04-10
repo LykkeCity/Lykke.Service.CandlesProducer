@@ -4,6 +4,7 @@ using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Blob;
 using Common.Log;
+using Lykke.ClientGenerator;
 using Lykke.Common;
 using Lykke.Job.CandlesProducer.AzureRepositories;
 using Lykke.Job.CandlesProducer.Core.Domain;
@@ -24,6 +25,7 @@ using Lykke.Job.CandlesProducer.Services.Trades.Spot;
 using Lykke.Job.CandlesProducer.Settings;
 using Lykke.Service.Assets.Client.Custom;
 using Lykke.SettingsReader;
+using MarginTrading.Backend.Contracts.DataReaderClient;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lykke.Job.CandlesProducer.Modules
@@ -36,14 +38,18 @@ namespace Lykke.Job.CandlesProducer.Modules
         private readonly ILog _log;
         private readonly IServiceCollection _services;
         private readonly QuotesSourceType _quotesSourceType;
+        private readonly IReloadingManager<MtDataReaderClientSettings> _mtDataReaderClientSettings;
 
-        public JobModule(CandlesProducerSettings settings, IReloadingManager<DbSettings> dbSettings, AssetsSettings assetsSettings, QuotesSourceType quotesSourceType, ILog log)
+        public JobModule(CandlesProducerSettings settings, IReloadingManager<DbSettings> dbSettings,
+            AssetsSettings assetsSettings, QuotesSourceType quotesSourceType, ILog log,
+            IReloadingManager<MtDataReaderClientSettings> mtDataReaderClientSettings)
         {
             _settings = settings;
             _dbSettings = dbSettings;
             _assetsSettings = assetsSettings;
             _quotesSourceType = quotesSourceType;
             _log = log;
+            _mtDataReaderClientSettings = mtDataReaderClientSettings;
             _services = new ServiceCollection();
         }
 
@@ -91,13 +97,26 @@ namespace Lykke.Job.CandlesProducer.Modules
 
         private void RegisterAssetsServices(ContainerBuilder builder)
         {
-            _services.UseAssetsClient(AssetServiceSettings.Create(
-                _assetsSettings,
-                _settings.AssetsCache.ExpirationPeriod));
+            if (_quotesSourceType == QuotesSourceType.Mt)
+            {
+                var settings = _mtDataReaderClientSettings.CurrentValue;
+                if (settings == null)
+                    throw new InvalidOperationException(
+                        "MtDataReaderLiveServiceClient config section not found, but market is MT");
 
-            builder.RegisterType<AssetPairsManager>()
-                .As<IAssetPairsManager>()
-                .SingleInstance();
+                _services.RegisterMtDataReaderClient(ClientProxyGenerator.CreateDefault(
+                    settings.ServiceUrl, settings.ApiKey, retryStrategy: null));
+
+                builder.RegisterType<MtAssetPairsManager>().As<IAssetPairsManager>().SingleInstance();
+            }
+            else
+            {
+                _services.UseAssetsClient(AssetServiceSettings.Create(
+                    _assetsSettings,
+                    _settings.AssetsCache.ExpirationPeriod));
+
+                builder.RegisterType<AssetPairsManager>().As<IAssetPairsManager>().SingleInstance();
+            }
         }
 
         private void RegisterCandlesServices(ContainerBuilder builder)
@@ -136,7 +155,8 @@ namespace Lykke.Job.CandlesProducer.Modules
                 builder.RegisterType<SpotTradesSubscriber>()
                     .As<ITradesSubscriber>()
                     .SingleInstance()
-                    .WithParameter(TypedParameter.From<IRabbitSubscriptionSettings>(_settings.Rabbit.TradesSubscription));
+                    .WithParameter(
+                        TypedParameter.From<IRabbitSubscriptionSettings>(_settings.Rabbit.TradesSubscription));
             }
             else
             {
@@ -169,14 +189,16 @@ namespace Lykke.Job.CandlesProducer.Modules
 
             builder.RegisterType<MidPriceQuoteGeneratorSnapshotRepository>()
                 .As<ISnapshotRepository<IImmutableDictionary<string, IMarketState>>>()
-                .WithParameter(TypedParameter.From(AzureBlobStorage.Create(snapshotsConnStringManager, maxExecutionTimeout: TimeSpan.FromMinutes(5))));
+                .WithParameter(TypedParameter.From(AzureBlobStorage.Create(snapshotsConnStringManager,
+                    maxExecutionTimeout: TimeSpan.FromMinutes(5))));
 
             builder.RegisterType<SnapshotSerializer<IImmutableDictionary<string, IMarketState>>>()
                 .As<ISnapshotSerializer>();
 
             builder.RegisterType<CandlesGeneratorSnapshotRepository>()
                 .As<ISnapshotRepository<ImmutableDictionary<string, ICandle>>>()
-                .WithParameter(TypedParameter.From(AzureBlobStorage.Create(snapshotsConnStringManager, maxExecutionTimeout: TimeSpan.FromMinutes(5))))
+                .WithParameter(TypedParameter.From(AzureBlobStorage.Create(snapshotsConnStringManager,
+                    maxExecutionTimeout: TimeSpan.FromMinutes(5))))
                 .SingleInstance();
 
             builder.RegisterType<SnapshotSerializer<ImmutableDictionary<string, ICandle>>>()

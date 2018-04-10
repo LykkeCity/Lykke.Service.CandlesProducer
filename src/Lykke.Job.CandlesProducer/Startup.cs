@@ -70,7 +70,8 @@ namespace Lykke.Job.CandlesProducer
                 jobSettings.CurrentValue, 
                 jobSettings.Nested(x => x.Db), 
                 appSettings.CurrentValue.Assets,
-                quotesSourceType, Log));
+                quotesSourceType, Log, 
+                appSettings.Nested(s => s.MtDataReaderLiveServiceClient)));
 
             builder.Populate(services);
 

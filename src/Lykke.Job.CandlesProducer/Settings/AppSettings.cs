@@ -10,6 +10,8 @@ namespace Lykke.Job.CandlesProducer.Settings
         [Optional]
         public CandlesProducerSettings MtCandlesProducerJob { get; set; }
         public SlackNotificationsSettings SlackNotifications { get; set; }
-        public AssetsSettings Assets { get; set; }        
+        public AssetsSettings Assets { get; set; }
+        [Optional]
+        public MtDataReaderClientSettings MtDataReaderLiveServiceClient { get; set; }
     }
 }

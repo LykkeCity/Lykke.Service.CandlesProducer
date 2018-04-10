@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Lykke.Job.CandlesProducer.Core.Domain;
 using Lykke.Job.CandlesProducer.Core.Services.Assets;
 using Lykke.Service.Assets.Client.Custom;
 
@@ -13,11 +14,11 @@ namespace Lykke.Job.CandlesProducer.Services.Assets
             _apiService = apiService;
         }
 
-        public async Task<IAssetPair> TryGetEnabledPairAsync(string assetPairId)
+        public async Task<AssetPair> TryGetEnabledPairAsync(string assetPairId)
         {
             var pair = await _apiService.TryGetAssetPairAsync(assetPairId);
 
-            return pair == null || pair.IsDisabled ? null : pair;
+            return pair == null || pair.IsDisabled ? null : new AssetPair(pair.Id, pair.BaseAssetId, pair.Accuracy);
         }
     }
 }
