@@ -45,6 +45,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot.Messages
             public string OppositeAsset { get; set; }
             public string OppositeClientId { get; set; }
             public double OppositeVolume { get; set; }
+            public long Index { get; set; }
         }
     }
 }
