@@ -57,7 +57,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
 
                 var assetPair = await _assetPairsManager.TryGetEnabledPairAsync(orderMessage.Order.AssetPairId);
 
-                foreach (var tradeMessage in orderMessage.Trades)
+                foreach (var tradeMessage in orderMessage.Trades.OrderBy(t => t.Timestamp).ThenBy(t => t.Index))
                 {
                     // If both orders of the trade are limit, then both of them should be contained in the single message,
                     // this is by design.
