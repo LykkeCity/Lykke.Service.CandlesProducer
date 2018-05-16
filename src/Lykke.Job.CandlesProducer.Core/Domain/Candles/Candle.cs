@@ -139,7 +139,7 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
             double lowPrice;
             double highPrice;
 
-            closePrice = LatestChangeTimestamp < timestamp ? price : Close;
+            closePrice = LatestChangeTimestamp <= timestamp ? price : Close;
             openPrice = OpenTimestamp > timestamp ? price : Open;
             lowPrice = Math.Min(Low, price);
             highPrice = Math.Max(High, price);
@@ -174,7 +174,7 @@ namespace Lykke.Job.CandlesProducer.Core.Domain.Candles
             double lowPrice;
             double highPrice;
 
-            closePrice = LatestChangeTimestamp < timestamp ? price : Close;
+            closePrice = LatestChangeTimestamp <= timestamp ? price : Close;
             openPrice = OpenTimestamp > timestamp ? price : Open;
             lowPrice = Math.Min(Low, price);
             highPrice = Math.Max(High, price);
