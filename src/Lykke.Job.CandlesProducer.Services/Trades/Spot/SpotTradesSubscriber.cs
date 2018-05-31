@@ -94,6 +94,13 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
                         quotingVolume = tradeMessage.Volume;
                     }
 
+                    // Just discarding trades with negative prices and\or volumes.  It's better to do it here instead of
+                    // at the first line of foreach 'case we have some additional trade selection logic in the begining.
+                    if (tradeMessage.Price < 0 ||
+                        baseVolume < 0 ||
+                        quotingVolume < 0)
+                        continue;
+
                     var trade = new Trade(
                         orderMessage.Order.AssetPairId,
                         tradeMessage.Timestamp,
