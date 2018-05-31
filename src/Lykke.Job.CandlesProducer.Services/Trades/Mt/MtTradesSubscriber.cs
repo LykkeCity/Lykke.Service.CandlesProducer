@@ -31,9 +31,9 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
 
         private async Task ProcessTradeAsync(MtTradeMessage message)
         {
-            // Just discarding trades with negative prices and\or volumes.
-            if (message.Price < 0 ||
-                message.Volume < 0)
+            // Just discarding trades with negative or zero prices and\or volumes.
+            if (message.Price <= 0 ||
+                message.Volume <= 0)
                 return;
 
             var quotingVolume = (double) (message.Volume * message.Price);
