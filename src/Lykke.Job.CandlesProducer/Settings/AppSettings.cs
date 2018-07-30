@@ -1,4 +1,5 @@
-﻿using Lykke.Service.Assets.Client.Custom;
+﻿using JetBrains.Annotations;
+using Lykke.Service.Assets.Client.Custom;
 using Lykke.SettingsReader.Attributes;
 
 namespace Lykke.Job.CandlesProducer.Settings
@@ -9,6 +10,7 @@ namespace Lykke.Job.CandlesProducer.Settings
         public CandlesProducerSettings CandlesProducerJob { get; set; }
         [Optional]
         public CandlesProducerSettings MtCandlesProducerJob { get; set; }
+        [Optional, CanBeNull]
         public SlackNotificationsSettings SlackNotifications { get; set; }
         public AssetsSettings Assets { get; set; }        
     }
