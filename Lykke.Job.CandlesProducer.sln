@@ -23,10 +23,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4. Contract", "4. Contract"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lykke.Job.CandlesProducer.Contract", "contract\Lykke.Job.CandlesProducer.Contract\Lykke.Job.CandlesProducer.Contract.csproj", "{13F545A0-DC26-490F-BCA4-78D2A2468417}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lykke.Job.CandlesProducer.SqlRepositories", "Lykke.Job.CandlesProducer.SqlRepositories\Lykke.Job.CandlesProducer.SqlRepositories.csproj", "{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205}"
+EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -56,6 +55,10 @@ Global
 		{13F545A0-DC26-490F-BCA4-78D2A2468417}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13F545A0-DC26-490F-BCA4-78D2A2468417}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13F545A0-DC26-490F-BCA4-78D2A2468417}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,9 +69,13 @@ Global
 		{1322B569-1032-4276-B86E-69F8BE3DC1F7} = {AA5ECC48-14C3-4BE7-AF0C-D59FCA2742C2}
 		{AAC9F450-14D7-4482-BC12-7C55006864E2} = {AB790991-CEB2-44A5-9C0C-A2D26DB86D41}
 		{13F545A0-DC26-490F-BCA4-78D2A2468417} = {D363127E-C220-473B-AC5F-E155E7C259CE}
+		{3569F8B0-E3DB-4D8C-8B82-0F9DEECFA205} = {AA5ECC48-14C3-4BE7-AF0C-D59FCA2742C2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E17CC76F-19BA-4069-BAC6-AC22FAC27818}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
