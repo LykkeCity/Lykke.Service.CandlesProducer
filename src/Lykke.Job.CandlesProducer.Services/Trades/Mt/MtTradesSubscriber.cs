@@ -1,8 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Common;
 using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Domain.Trades;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
@@ -20,9 +20,9 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
         private readonly string _connectionString;
         private IStopable _tradesSubscriber;
 
-        public MtTradesSubscriber(ILog log, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
+        public MtTradesSubscriber(ILogFactory logFactory, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
         {
-            _log = log?.CreateComponentScope(nameof(MtTradesSubscriber)) ?? throw new ArgumentNullException(nameof(log));
+            _log = logFactory.CreateLog(this);
             _candlesManager = candlesManager;
             _subscribersFactory = subscribersFactory;
             _connectionString = connectionString;
@@ -39,7 +39,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Mt
             if (message.Price <= 0 ||
                 message.Volume <= 0)
             {
-                await _log.WriteWarningAsync(nameof(ProcessTradeAsync), message.ToJson(), "Got an MT trade with non-positive price or volume value.");
+                _log.Warning(nameof(ProcessTradeAsync), "Got an MT trade with non-positive price or volume value.", context: message.ToJson());
                 return;
             }
 

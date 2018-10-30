@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using Common;
 using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Contract;
 using Lykke.Job.CandlesProducer.Core.Domain.Candles;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
@@ -20,9 +21,9 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
         private ConcurrentDictionary<string, Candle> _candles;
         private readonly ConcurrentDictionary<string, DateTime> _lastWarningTimesForPairs;
         
-        public CandlesGenerator(ILog log, TimeSpan warningsTimeout)
+        public CandlesGenerator(ILogFactory logFactory, TimeSpan warningsTimeout)
         {
-            _log = log;
+            _log = logFactory.CreateLog(this);
             _warningsTimeout = warningsTimeout;
             _candles = new ConcurrentDictionary<string, Candle>();
             _lastWarningTimesForPairs = new ConcurrentDictionary<string, DateTime>();
@@ -146,11 +147,10 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
                         return candle;
 
                     _lastWarningTimesForPairs[candle.AssetPairId] = DateTime.UtcNow;
-                    _log.WriteWarningAsync(
-                        nameof(CandlesGenerator),
+                    _log.Warning(
                         nameof(Update),
-                        getLoggingContext(candle).ToJson(),
-                        "Incoming data is too old to update the candle. No candle will be altered.").Wait();
+                        "Incoming data is too old to update the candle. No candle will be altered.",
+                        context: getLoggingContext(candle).ToJson());
 
                     return candle;
                 });

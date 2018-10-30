@@ -2,10 +2,12 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
 using Lykke.Job.CandlesProducer.Core.Services.Quotes;
 using Lykke.Job.CandlesProducer.Core.Services.Trades;
+using Lykke.Sdk;
 
 namespace Lykke.Job.CandlesProducer.Services
 {
@@ -24,38 +26,38 @@ namespace Lykke.Job.CandlesProducer.Services
             ITradesSubscriber tradesSubscriber,
             ICandlesPublisher candlesPublisher,
             IEnumerable<ISnapshotSerializer> snapshotSerializers,
-            ILog log)
+            ILogFactory logFactory)
         {
             _quotesSubscriber = quotesSubscriber;
             _tradesSubscriber = tradesSubscriber;
             _candlesPublisher = candlesPublisher;
             _snapshotSerializers = snapshotSerializers;
-            _log = log;
+            _log = logFactory.CreateLog(this);
         }
 
         public  async Task StartAsync()
         {
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Deserializing snapshots async...");
+            _log.Info(nameof(StartAsync), "Deserializing snapshots async...");
 
             var snapshotTasks = _snapshotSerializers.Select(s => s.DeserializeAsync()).ToArray();
 
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Starting candles publisher...");
+            _log.Info(nameof(StartAsync), "Starting candles publisher...");
 
             _candlesPublisher.Start();
 
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Waiting for snapshots async...");
+            _log.Info(nameof(StartAsync), "Waiting for snapshots async...");
 
             await Task.WhenAll(snapshotTasks);
 
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Starting quotes subscriber...");
+            _log.Info(nameof(StartAsync), "Starting quotes subscriber...");
 
             _quotesSubscriber.Start();
 
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Starting trades subscriber...");
+            _log.Info(nameof(StartAsync), "Starting trades subscriber...");
 
             _tradesSubscriber.Start();
 
-            await _log.WriteInfoAsync(nameof(StartupManager), nameof(StartAsync), "", "Started up");
+            _log.Info(nameof(StartAsync), "Started up");
         }
     }
 }

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Immutable;
 using Autofac;
-using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Blob;
-using Common.Log;
+using JetBrains.Annotations;
 using Lykke.Common;
 using Lykke.Job.CandlesProducer.AzureRepositories;
 using Lykke.Job.CandlesProducer.Core.Domain;
@@ -22,37 +21,33 @@ using Lykke.Job.CandlesProducer.Services.Quotes.Spot;
 using Lykke.Job.CandlesProducer.Services.Trades.Mt;
 using Lykke.Job.CandlesProducer.Services.Trades.Spot;
 using Lykke.Job.CandlesProducer.Settings;
-using Lykke.Service.Assets.Client.Custom;
+using Lykke.Sdk;
+using Lykke.Sdk.Health;
+using Lykke.Service.Assets.Client;
 using Lykke.SettingsReader;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Lykke.Job.CandlesProducer.Modules
 {
+    [UsedImplicitly]
     public class JobModule : Module
     {
         private readonly CandlesProducerSettings _settings;
         private readonly IReloadingManager<DbSettings> _dbSettings;
-        private readonly AssetsSettings _assetsSettings;
-        private readonly ILog _log;
-        private readonly IServiceCollection _services;
+        private readonly AssetSettings _assetsSettings;
         private readonly QuotesSourceType _quotesSourceType;
 
-        public JobModule(CandlesProducerSettings settings, IReloadingManager<DbSettings> dbSettings, AssetsSettings assetsSettings, QuotesSourceType quotesSourceType, ILog log)
+        public JobModule(IReloadingManager<AppSettings> settings)
         {
-            _settings = settings;
-            _dbSettings = dbSettings;
-            _assetsSettings = assetsSettings;
-            _quotesSourceType = quotesSourceType;
-            _log = log;
-            _services = new ServiceCollection();
+            _settings = settings.CurrentValue.CandlesProducerJob ?? settings.CurrentValue.MtCandlesProducerJob;
+            _dbSettings = settings.Nested(x => x.CandlesProducerJob.Db);
+            _assetsSettings = settings.CurrentValue.Assets;
+            _quotesSourceType = settings.CurrentValue.CandlesProducerJob != null 
+                ? QuotesSourceType.Spot 
+                : QuotesSourceType.Mt;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterInstance(_log)
-                .As<ILog>()
-                .SingleInstance();
-
             builder.RegisterType<HealthService>()
                 .As<IHealthService>()
                 .SingleInstance();
@@ -62,8 +57,6 @@ namespace Lykke.Job.CandlesProducer.Modules
             RegisterAssetsServices(builder);
 
             RegisterCandlesServices(builder);
-
-            builder.Populate(_services);
         }
 
         private void RegisterResourceMonitor(ContainerBuilder builder)
@@ -77,12 +70,11 @@ namespace Lykke.Job.CandlesProducer.Modules
                     break;
 
                 case ResourceMonitorMode.AppInsightsOnly:
-                    builder.RegisterResourcesMonitoring(_log);
+                    builder.RegisterResourcesMonitoring();
                     break;
 
                 case ResourceMonitorMode.AppInsightsWithLog:
                     builder.RegisterResourcesMonitoringWithLogging(
-                        _log,
                         monitorSettings.CpuThreshold,
                         monitorSettings.RamThreshold);
                     break;
@@ -91,8 +83,8 @@ namespace Lykke.Job.CandlesProducer.Modules
 
         private void RegisterAssetsServices(ContainerBuilder builder)
         {
-            _services.UseAssetsClient(AssetServiceSettings.Create(
-                _assetsSettings,
+            builder.RegisterAssetsClient(AssetServiceSettings.Create(
+                new Uri(_assetsSettings.ServiceUrl),
                 _settings.AssetsCache.ExpirationPeriod));
 
             builder.RegisterType<AssetPairsManager>()

@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lykke.RabbitMqBroker" Version="7.0.0" />
+    <PackageReference Include="Lykke.RabbitMqBroker" Version="7.5.0" />
+    <PackageReference Include="Lykke.Sdk" Version="5.4.0" />
   </ItemGroup>
 
   <ItemGroup>
