@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AzureStorage;
 using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Domain;
 using Lykke.Job.CandlesProducer.Core.Domain.Candles;
 using MessagePack;
@@ -21,9 +22,9 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
         private readonly ILog _log;
         private readonly IBlobStorage _storage;
 
-        public CandlesGeneratorSnapshotRepository(ILog log, IBlobStorage storage)
+        public CandlesGeneratorSnapshotRepository(ILogFactory logFactory, IBlobStorage storage)
         {
-            _log = log;
+            _log = logFactory.CreateLog(this);
             _storage = storage;
         }
 
@@ -60,8 +61,7 @@ namespace Lykke.Job.CandlesProducer.AzureRepositories
             }
             catch (InvalidOperationException)
             {
-                await _log.WriteWarningAsync(
-                    nameof(CandlesGeneratorSnapshotRepository),
+                _log.Warning(
                     nameof(TryGetAsync), 
                     "Failed to deserialize the candles generator snapshot, trying to deserialize it as the legacy format");
 

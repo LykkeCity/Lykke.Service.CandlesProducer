@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Common;
-using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
@@ -12,29 +12,28 @@ namespace Lykke.Job.CandlesProducer.Services
     [UsedImplicitly]
     public class RabbitMqSubscribersFactory : IRabbitMqSubscribersFactory
     {
-        private readonly ILog _log;
+        private readonly ILogFactory _logFactory;
 
-        public RabbitMqSubscribersFactory(ILog log)
+        public RabbitMqSubscribersFactory(ILogFactory logFactory)
         {
-            _log = log;
+            _logFactory = logFactory;
         }
 
         public IStopable Create<TMessage>(string connectionString, string @namespace, string source, Func<TMessage, Task> handler, string queueSuffix = null)
         {
             var settings = RabbitMqSubscriptionSettings
-                .CreateForSubscriber(connectionString, @namespace, source, @namespace, $"candlesproducer{queueSuffix}")
+                .ForSubscriber(connectionString, @namespace, source, @namespace, $"candlesproducer{queueSuffix}")
                 .MakeDurable();
 
-            return new RabbitMqSubscriber<TMessage>(settings,
-                    new ResilientErrorHandlingStrategy(_log, settings,
+            return new RabbitMqSubscriber<TMessage>(_logFactory, settings,
+                    new ResilientErrorHandlingStrategy(_logFactory, settings,
                         retryTimeout: TimeSpan.FromSeconds(10),
                         retryNum: 10,
-                        next: new DeadQueueErrorHandlingStrategy(_log, settings)))
+                        next: new DeadQueueErrorHandlingStrategy(_logFactory, settings)))
                 .SetMessageDeserializer(new JsonMessageDeserializer<TMessage>())
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(handler)
                 .CreateDefaultBinding()
-                .SetLogger(_log)
                 .Start();
         }
     }

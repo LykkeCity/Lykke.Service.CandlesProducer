@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common;
 using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
 using Lykke.Job.CandlesProducer.Core.Services.Quotes;
@@ -20,9 +21,9 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Spot
 
         private IStopable _subscriber;
 
-        public SpotQuotesSubscriber(ILog log, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
+        public SpotQuotesSubscriber(ILogFactory logFactory, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
         {
-            _log = log;
+            _log = logFactory.CreateLog(this);
             _candlesManager = candlesManager;
             _subscribersFactory = subscribersFactory;
             _connectionString = connectionString;
@@ -46,7 +47,7 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Spot
                 if (validationErrors.Any())
                 {
                     var message = string.Join("\r\n", validationErrors);
-                    await _log.WriteWarningAsync(nameof(SpotQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), message);
+                    _log.Warning(nameof(ProcessQuoteAsync), message, context: quote.ToJson());
 
                     return;
                 }
@@ -55,7 +56,7 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Spot
             }
             catch (Exception)
             {
-                await _log.WriteWarningAsync(nameof(SpotQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), "Failed to process quote");
+                _log.Warning(nameof(ProcessQuoteAsync), "Failed to process quote", context: quote.ToJson());
                 throw;
             }
         }

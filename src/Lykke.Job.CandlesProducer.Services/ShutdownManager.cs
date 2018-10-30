@@ -2,10 +2,12 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
 using Lykke.Job.CandlesProducer.Core.Services.Quotes;
 using Lykke.Job.CandlesProducer.Core.Services.Trades;
+using Lykke.Sdk;
 
 namespace Lykke.Job.CandlesProducer.Services
 {
@@ -24,38 +26,38 @@ namespace Lykke.Job.CandlesProducer.Services
             ITradesSubscriber tradesSubscriber,
             ICandlesPublisher publisher,
             IEnumerable<ISnapshotSerializer> snapshotSerializerses,
-            ILog log)
+            ILogFactory logFactory)
         {
             _quotesSubscriber = quotesSubscriber;
             _tradesSubscriber = tradesSubscriber;
             _publisher = publisher;
             _snapshotSerializers = snapshotSerializerses;
-            _log = log;
+            _log = logFactory.CreateLog(this);
         }
 
-        public async Task ShutdownAsync()
+        public async Task StopAsync()
         {
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Stopping trades subscriber...");
+            _log.Info(nameof(StopAsync), "Stopping trades subscriber...");
 
             _tradesSubscriber.Stop();
 
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Stopping quotes subscriber...");
+            _log.Info(nameof(StopAsync), "Stopping quotes subscriber...");
 
             _quotesSubscriber.Stop();
 
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Serializing snapshots async...");
+            _log.Info(nameof(StopAsync), "Serializing snapshots async...");
             
             var snapshotSrializationTasks = _snapshotSerializers.Select(s  => s.SerializeAsync());
 
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Stopping candles publisher...");
+            _log.Info(nameof(StopAsync), "Stopping candles publisher...");
 
             _publisher.Stop();
 
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Awaiting for snapshots serialization...");
+            _log.Info(nameof(StopAsync), "Awaiting for snapshots serialization...");
 
             await Task.WhenAll(snapshotSrializationTasks);
 
-            await _log.WriteInfoAsync(nameof(ShutdownManager), nameof(ShutdownAsync), "", "Shutted down");
+            _log.Info(nameof(StopAsync), "Shutted down");
         }
     }
 }

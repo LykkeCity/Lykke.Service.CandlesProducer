@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common;
 using Common.Log;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Candles;
 using Lykke.Job.CandlesProducer.Core.Services.Quotes;
@@ -21,9 +22,9 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Mt
 
         private IStopable _subscriber;
 
-        public MtQuotesSubscriber(ILog log, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
+        public MtQuotesSubscriber(ILogFactory logFactory, ICandlesManager candlesManager, IRabbitMqSubscribersFactory subscribersFactory, string connectionString)
         {
-            _log = log;
+            _log = logFactory.CreateLog(this);
             _candlesManager = candlesManager;
             _subscribersFactory = subscribersFactory;
             _connectionString = connectionString;
@@ -47,7 +48,7 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Mt
                 if (validationErrors.Any())
                 {
                     var message = string.Join("\r\n", validationErrors);
-                    await _log.WriteWarningAsync(nameof(MtQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), message);
+                    _log.Warning(nameof(ProcessQuoteAsync), message, context: quote.ToJson());
 
                     return;
                 }
@@ -66,7 +67,7 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Mt
                 }
                 else
                 {
-                    await _log.WriteWarningAsync(nameof(MtQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), "bid quote is skipped due to not positive price");
+                    _log.Warning(nameof(ProcessQuoteAsync), "bid quote is skipped due to not positive price", context: quote.ToJson());
                 }
 
                 if (quote.Ask > 0)
@@ -83,12 +84,12 @@ namespace Lykke.Job.CandlesProducer.Services.Quotes.Mt
                 }
                 else
                 {
-                    await _log.WriteWarningAsync(nameof(MtQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), "bid quote is skipped due to not positive price");
+                    _log.Warning(nameof(ProcessQuoteAsync), "bid quote is skipped due to not positive price", context: quote.ToJson());
                 }
             }
             catch (Exception)
             {
-                await _log.WriteWarningAsync(nameof(MtQuotesSubscriber), nameof(ProcessQuoteAsync), quote.ToJson(), "Failed to process quote");
+                _log.Warning(nameof(ProcessQuoteAsync), "Failed to process quote", context: quote.ToJson());
                 throw;
             }
         }
