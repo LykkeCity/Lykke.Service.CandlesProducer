@@ -39,11 +39,14 @@ namespace Lykke.Job.CandlesProducer.Modules
         public JobModule(IReloadingManager<AppSettings> settings)
         {
             _settings = settings.CurrentValue.CandlesProducerJob ?? settings.CurrentValue.MtCandlesProducerJob;
-            _dbSettings = settings.Nested(x => x.CandlesProducerJob.Db);
             _assetsSettings = settings.CurrentValue.Assets;
             _quotesSourceType = settings.CurrentValue.CandlesProducerJob != null 
                 ? QuotesSourceType.Spot 
                 : QuotesSourceType.Mt;
+            
+            _dbSettings = settings.Nested(x => _quotesSourceType == QuotesSourceType.Spot 
+                ? x.CandlesProducerJob.Db 
+                : x.MtCandlesProducerJob.Db);
         }
 
         protected override void Load(ContainerBuilder builder)
