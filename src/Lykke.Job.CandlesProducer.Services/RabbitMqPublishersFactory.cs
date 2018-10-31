@@ -1,6 +1,7 @@
 ﻿using System;
 using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.RabbitMqBroker.Publisher;
 using Lykke.RabbitMqBroker.Subscriber;
@@ -10,11 +11,13 @@ namespace Lykke.Job.CandlesProducer.Services
     [UsedImplicitly]
     public class RabbitMqPublishersFactory : IRabbitMqPublishersFactory
     {
+        private readonly ILogFactory _logFactory;
         private readonly ILog _log;
 
-        public RabbitMqPublishersFactory(ILog log)
+        public RabbitMqPublishersFactory(ILogFactory logFactory)
         {
-            _log = log;
+            _logFactory = logFactory;
+            _log = logFactory.CreateLog(this);
         }
 
         public RabbitMqPublisher<TMessage> Create<TMessage>(
@@ -26,19 +29,18 @@ namespace Lykke.Job.CandlesProducer.Services
             try
             {
                 var settings = RabbitMqSubscriptionSettings
-                    .CreateForPublisher(connectionString, @namespace, endpoint)
+                    .ForPublisher(connectionString, @namespace, endpoint)
                     .MakeDurable();
 
-                return new RabbitMqPublisher<TMessage>(settings)
+                return new RabbitMqPublisher<TMessage>(_logFactory, settings)
                     .SetSerializer(serializer)
                     .SetPublishStrategy(new DefaultFanoutPublishStrategy(settings))
                     .PublishSynchronously()
-                    .SetLogger(_log)
                     .Start();
             }
             catch (Exception ex)
             {
-                _log.WriteErrorAsync(nameof(RabbitMqPublishersFactory), nameof(Create), null, ex).Wait();
+                _log.Error(nameof(Create), ex);
                 throw;
             }
         }

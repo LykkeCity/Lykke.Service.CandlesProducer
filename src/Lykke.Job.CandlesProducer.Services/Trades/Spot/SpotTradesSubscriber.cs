@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Common;
 using Common.Log;
 using JetBrains.Annotations;
+using Lykke.Common.Log;
 using Lykke.Job.CandlesProducer.Core.Domain.Trades;
 using Lykke.Job.CandlesProducer.Core.Services;
 using Lykke.Job.CandlesProducer.Core.Services.Assets;
@@ -24,14 +25,13 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
         private IStopable _limitTradesSubscriber;
 
         public SpotTradesSubscriber(
-            ILog log,
+            ILogFactory logFactory,
             ICandlesManager candlesManager, 
             IRabbitMqSubscribersFactory subscribersFactory, 
             IRabbitSubscriptionSettings tradesSubscriptionSettings,
             IAssetPairsManager assetPairsManager)
         {
-            _log = log?.CreateComponentScope(nameof(SpotTradesSubscriber)) ??
-                   throw new ArgumentNullException(nameof(log));
+            _log = logFactory.CreateLog(this);
             _candlesManager = candlesManager ?? throw new ArgumentNullException(nameof(candlesManager));
             _subscribersFactory = subscribersFactory ?? throw new ArgumentNullException(nameof(_subscribersFactory));
             _tradesSubscriptionSettings = tradesSubscriptionSettings ?? throw new ArgumentNullException(nameof(_tradesSubscriptionSettings));
@@ -101,7 +101,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
                     }
 
                     // Just discarding trades with negative prices and\or volumes.  It's better to do it here instead of
-                    // at the first line of foreach 'case we have some additional trade selection logic in the begining.
+                    // at the first line of foreach 'case we have some additional trade selection logic in the beginning.
                     // ReSharper disable once InvertIf
                     if (tradeMessage.Price > 0 && baseVolume > 0 && quotingVolume > 0)
                     {
@@ -117,7 +117,7 @@ namespace Lykke.Job.CandlesProducer.Services.Trades.Spot
                     }
                     else
                     {
-                        await _log.WriteWarningAsync(nameof(ProcessLimitTradesAsync), tradeMessage.ToJson(), "Got a Spot trade with non-positive price or volume value.");
+                        _log.Warning(nameof(ProcessLimitTradesAsync), "Got a Spot trade with non-positive price or volume value.", context: tradeMessage.ToJson());
                     }
                 }
             }
