@@ -40,12 +40,12 @@ namespace Lykke.Job.CandlesProducer.Modules
         {
             _settings = settings.CurrentValue.CandlesProducerJob ?? settings.CurrentValue.MtCandlesProducerJob;
             _assetsSettings = settings.CurrentValue.Assets;
-            _quotesSourceType = settings.CurrentValue.CandlesProducerJob != null 
-                ? QuotesSourceType.Spot 
+            _quotesSourceType = settings.CurrentValue.CandlesProducerJob != null
+                ? QuotesSourceType.Spot
                 : QuotesSourceType.Mt;
-            
-            _dbSettings = settings.Nested(x => _quotesSourceType == QuotesSourceType.Spot 
-                ? x.CandlesProducerJob.Db 
+
+            _dbSettings = settings.Nested(x => _quotesSourceType == QuotesSourceType.Spot
+                ? x.CandlesProducerJob.Db
                 : x.MtCandlesProducerJob.Db);
         }
 
@@ -177,6 +177,12 @@ namespace Lykke.Job.CandlesProducer.Modules
             builder.RegisterType<SnapshotSerializer<ImmutableDictionary<string, ICandle>>>()
                 .As<ISnapshotSerializer>()
                 .PreserveExistingDefaults();
+
+            builder.RegisterType<SnapshotsHandler>()
+                .WithParameter(TypedParameter.From(_settings.CandlesGenerator.PersistSnapshotInterval))
+                .As<IStartable>()
+                .AutoActivate()
+                .SingleInstance();
         }
     }
 }
