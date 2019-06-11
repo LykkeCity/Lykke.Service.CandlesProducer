@@ -40,9 +40,9 @@ namespace Lykke.Job.CandlesProducer.Services.Candles
 
         private Task Execute(ITimerTrigger timer, TimerTriggeredHandlerArgs args, CancellationToken cancellationToken)
         {
-            var snapshotSrializationTasks = _snapshotSerializers.Select(s  => s.SerializeAsync());
+            var snapshotSerializationTasks = _snapshotSerializers.Select(s => s.SerializeAsync());
 
-            return Task.WhenAll(snapshotSrializationTasks);
+            return Task.WhenAll(snapshotSerializationTasks);
         }
     }
 }
